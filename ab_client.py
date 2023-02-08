@@ -1,7 +1,6 @@
 import requests
 import sys
 from address_book import AddressBook
-from dag_utils import reverse_dag, order_dag
 
 port = sys.argv[1]
 agent = sys.argv[2]
@@ -29,16 +28,6 @@ modify_group_menu = ['select modify action:',
               '  1- add member',
               '  2- remove member']
 
-def read_address_book():
-    reply = requests.get(f'{address}/dag')
-    (sinks, reverse, transactions) = reverse_dag(reply.json())
-    order = order_dag(sinks, reverse)
-    book = AddressBook()
-    for tx_list in order:
-        for key in tx_list:
-            print(transactions[key]['content'])
-            book.execute(transactions[key]['content'])
-    return book
 
 def create_contact():
     print('Enter name of contact:')
@@ -51,7 +40,8 @@ def create_contact():
                                               'address': contact_address})
 
 def delete_contact():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     contacts = book.get_contacts_list()
     print('select contact to delete:')
     for index, name in enumerate(contacts):
@@ -62,7 +52,8 @@ def delete_contact():
                                               'name': name})
 
 def modify_contact():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     contacts = book.get_contacts_list()
     print('select contact to modify:')
     for index, name in enumerate(contacts):
@@ -76,7 +67,8 @@ def modify_contact():
                                               'address': contact_address})
 
 def create_group():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     contacts = book.get_contacts_list()
     indexes = set()
     while True:
@@ -100,7 +92,8 @@ def create_group():
                                                   'members': members})
 
 def delete_group():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     groups = book.get_groups_list()
     print('select group to delete:')
     for index, name in enumerate(groups):
@@ -111,7 +104,8 @@ def delete_group():
                                               'name': name})
 
 def add_member():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     groups = book.get_groups_list()
     print('select group to modify:')
     for index, name in enumerate(groups):
@@ -130,7 +124,8 @@ def add_member():
                                               'contact_name': contact_name})
 
 def remove_member():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     groups = book.get_groups_list()
     print('select group to modify:')
     for index, name in enumerate(groups):
@@ -172,7 +167,8 @@ def share_records():
         transactions = [tx
                         for tx in transactions
                         if tx_filter in tx['content'] and tx['content'][tx_filter] in selected_values]
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     contacts = book.get_contacts_list()
     print('select contact to share with:')
     for index, name in enumerate(contacts):
@@ -182,7 +178,8 @@ def share_records():
     requests.post(f'{share_address}/transaction', json=transactions)
 
 def list_address_book():
-    book = read_address_book()
+    book = AddressBook(address)
+    book.read_address_book()
     print(f'{agent} address book:')
     book.print()
 

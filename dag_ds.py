@@ -23,3 +23,4 @@ class DagDataStructure:
                        'pointers': self.sources}
         self.transactions[hash_code] = transaction
         self.sources = [hash_code]
+        return self.transactions[hash_code]

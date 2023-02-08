@@ -17,8 +17,8 @@ the_dag = DagDataStructure()
 def message_handler():
     msg = request.get_json() if request.is_json else None
     logger.info(msg)
-    the_dag.create_transaction(msg)
-    return {}
+    transaction = the_dag.create_transaction(msg)
+    return transaction
 
 
 # Create a URL route in our application for agents communication

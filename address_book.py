@@ -1,7 +1,11 @@
+import requests
+from dag_utils import reverse_dag, order_dag
+
 class AddressBook:
-    def __init__(self):
+    def __init__(self, address):
         self.contacts = {}
         self.groups = {}
+        self.address = address
         self.operations = {'CreateContact': self.create_contact,
                            'DeleteContact': self.delete_contact,
                            'UpdateContact': self.update_contact,
@@ -85,3 +89,13 @@ class AddressBook:
 
     def get_group_members(self, group):
         return self.groups[group]
+
+    def read_address_book(self):
+        reply = requests.get(f'{self.address}/dag')
+        (sinks, reverse, transactions) = reverse_dag(reply.json())
+        order = order_dag(sinks, reverse)
+        for tx_list in order:
+            for key in tx_list:
+                transaction = transactions[key]['content']
+                if transaction['application'] == 'SocialNetwork':
+                    self.execute(transaction)
