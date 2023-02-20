@@ -34,112 +34,128 @@ def create_contact():
     name = input()
     print('enter address of contact:')
     contact_address = input()
-    requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
                                               'operation': 'CreateContact',
+                                              'functionals': [],
                                               'name': name,
                                               'address': contact_address})
 
 def delete_contact():
     book = AddressBook(address)
-    book.read_address_book()
     contacts = book.get_contacts_list()
+    keys = list(contacts.keys())
     print('select contact to delete:')
-    for index, name in enumerate(contacts):
-        print(f'  {index+1}- {name}')
-    name = contacts[int(input())-1]
-    requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+    for index, key in enumerate(keys):
+        print(f'  {index+1}- {contacts[key]}')
+    key = keys[int(input())-1]
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
                                               'operation': 'DeleteContact',
-                                              'name': name})
+                                              'functionals': [key],
+                                              'contact': 0})
 
 def modify_contact():
     book = AddressBook(address)
-    book.read_address_book()
     contacts = book.get_contacts_list()
+    keys = list(contacts.keys())
     print('select contact to modify:')
-    for index, name in enumerate(contacts):
-        print(f'  {index+1}- {name}')
-    name = contacts[int(input())-1]
+    for index, key in enumerate(keys):
+        print(f'  {index+1}- {contacts[key]}')
+    key = keys[int(input())-1]
     print('enter new address:')
     contact_address = input()
-    requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
                                               'operation': 'UpdateContact',
-                                              'name': name,
+                                              'functionals': [key],
+                                              'contact': 0,
                                               'address': contact_address})
 
 def create_group():
     book = AddressBook(address)
-    book.read_address_book()
     contacts = book.get_contacts_list()
+    keys = list(contacts.keys())
     indexes = set()
     while True:
         print('select contacts to group (0 to continue):')
-        for index, name in enumerate(contacts):
+        for index, key in enumerate(keys):
             if index not in indexes:
-                print(f'  {index + 1}- {name}')
+                print(f'  {index + 1}- {contacts[key]}')
         selection = int(input())
         if selection:
             indexes.add(selection-1)
-            print([contacts[index] for index in indexes if index in range(len(contacts))])
+            print([contacts[keys[index]] for index in indexes if index in range(len(contacts))])
         else:
             break
     if indexes:
         print('Enter name of group:')
         name = input()
-        members = [contacts[index] for index in indexes if index in range(len(contacts))]
-        requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+        members = [keys[index] for index in indexes if index in range(len(keys))]
+        requests.post(f'{address}/message', json={'owner': address,
+                                                  'application': 'SocialNetwork',
                                                   'operation': 'CreateGroup',
+                                                  'functionals': members,
                                                   'name': name,
-                                                  'members': members})
+                                                  'contacts': [*range(len(members))]})
 
 def delete_group():
     book = AddressBook(address)
-    book.read_address_book()
     groups = book.get_groups_list()
+    keys = list(groups.keys())
     print('select group to delete:')
-    for index, name in enumerate(groups):
-        print(f'  {index+1}- {name}')
-    name = groups[int(input())-1]
-    requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+    for index, key in enumerate(keys):
+        print(f'  {index+1}- {groups[key]}')
+    key = keys[int(input())-1]
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
                                               'operation': 'DeleteGroup',
-                                              'name': name})
+                                              'functionals': [key],
+                                              'group': 0})
 
 def add_member():
     book = AddressBook(address)
-    book.read_address_book()
     groups = book.get_groups_list()
+    keys = list(groups.keys())
     print('select group to modify:')
-    for index, name in enumerate(groups):
-        print(f'  {index+1}- {name}')
-    group_name = groups[int(input())-1]
-    members = book.get_group_members(group_name)
+    for index, key in enumerate(keys):
+        print(f'  {index+1}- {groups[key]}')
+    group = keys[int(input())-1]
+    members = book.get_group_members(group)
     contacts = book.get_contacts_list()
+    contact_keys = list(contacts.keys())
     print('select contact to add:')
-    for index, name in enumerate(contacts):
-        if name not in members:
-            print(f'  {index + 1}- {name}')
-    contact_name = contacts[int(input())-1]
-    requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+    for index, key in enumerate(contact_keys):
+        if key not in members:
+            print(f'  {index + 1}- {contacts[key]}')
+    contact = contact_keys[int(input())-1]
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
                                               'operation': 'ModifyGroupAdd',
-                                              'name': group_name,
-                                              'contact_name': contact_name})
+                                              'functionals': [group, contact],
+                                              'group': 0,
+                                              'contact': 1})
 
 def remove_member():
     book = AddressBook(address)
-    book.read_address_book()
     groups = book.get_groups_list()
+    keys = list(groups.keys())
     print('select group to modify:')
-    for index, name in enumerate(groups):
-        print(f'  {index+1}- {name}')
-    group_name = groups[int(input())-1]
-    members = book.get_group_members(group_name)
+    for index, key in enumerate(keys):
+        print(f'  {index+1}- {groups[key]}')
+    group = keys[int(input())-1]
+    members = book.get_group_members(group)
+    member_keys = list(members.keys())
     print('select member to remove:')
-    for index, name in enumerate(members):
-        print(f'  {index + 1}- {name}')
-    contact_name = members[int(input())-1]
-    requests.post(f'{address}/message', json={'application': 'SocialNetwork',
+    for index, key in enumerate(member_keys):
+        print(f'  {index + 1}- {members[key]}')
+    member = member_keys[int(input())-1]
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
                                               'operation': 'ModifyGroupRemove',
-                                              'name': group_name,
-                                              'member_name': contact_name})
+                                              'functionals': [group, member],
+                                              'group': 0,
+                                              'member': 1})
 
 def share_records():
     reply = requests.get(f'{address}/dag')
@@ -168,18 +184,18 @@ def share_records():
                         for tx in transactions
                         if tx_filter in tx['content'] and tx['content'][tx_filter] in selected_values]
     book = AddressBook(address)
-    book.read_address_book()
     contacts = book.get_contacts_list()
+    contact_keys = list(contacts.keys())
     print('select contact to share with:')
-    for index, name in enumerate(contacts):
-        print(f'  {index+1}- {name}')
-    name = contacts[int(input())-1]
-    share_address = book.get_contact(name)
+    for index, key in enumerate(contact_keys):
+        print(f'  {index+1}- {contacts[key]}')
+    key = contact_keys[int(input())-1]
+    recipient = book.get_contact(key)
+    share_address = recipient['address']
     requests.post(f'{share_address}/transaction', json=transactions)
 
 def list_address_book():
     book = AddressBook(address)
-    book.read_address_book()
     print(f'{agent} address book:')
     book.print()
 
@@ -202,6 +218,3 @@ while next_menu:
     elif next_menu:
         next_menu = main_menu
         actions = main_actions
-
-# delete, modify
-# interpret output

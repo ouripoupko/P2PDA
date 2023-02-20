@@ -1,5 +1,6 @@
 import sys
 import os
+from threading import Thread
 import logging
 from flask import Flask, request
 from flask_cors import CORS
@@ -11,6 +12,10 @@ CORS(app)
 logger = app.logger
 
 the_dag = DagDataStructure()
+
+def process_transactions(transactions):
+    for transaction in transactions:
+        the_dag.store_transaction(transaction)
 
 # Create a URL route in our application for human messages
 @app.route('/message', methods=['POST'])
@@ -26,15 +31,20 @@ def message_handler():
 def transaction_handler():
     msg = request.get_json() if request.is_json else None
     logger.info(msg)
-    for transaction in msg:
-        the_dag.store_transaction(transaction)
+    Thread(target=process_transactions, args=(msg,)).start()
     return {}
 
 
 # Create a URL route in our application for reading the dag
 @app.route('/dag', methods=['GET'])
 def dag_handler():
-    return [block for block in iter(the_dag)]
+    hash_code = request.args.get('hash_code')
+    application = request.args.get('application')
+    if hash_code:
+        return the_dag[hash_code]
+    if application:
+        return [transaction for transaction in iter(the_dag) if transaction['content']['application'] == application]
+    return [transaction for transaction in iter(the_dag)]
 
 
 # If we're running in stand-alone mode, run the application

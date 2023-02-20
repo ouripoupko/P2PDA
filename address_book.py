@@ -13,58 +13,80 @@ class AddressBook:
                            'DeleteGroup': self.delete_group,
                            'ModifyGroupAdd': self.add_member,
                            'ModifyGroupRemove': self.remove_member}
+        self.read_address_book()
 
-    def execute(self, message):
-        self.operations[message['operation']](message)
+    def execute(self, key, message):
+        self.operations[message['operation']](key, message)
 
-    def create_contact(self, message):
-        if message['name'] in self.contacts:
+    def create_contact(self, key, message):
+        if key in self.contacts:
             print('contact already exists')
         else:
-            self.contacts[message['name']] = message['address']
+            self.contacts[key] = {'name': message['name'],
+                                  'address': message['address']}
 
-    def delete_contact(self, message):
-        if message['name'] in self.contacts:
-            del self.contacts[message['name']]
+    def delete_contact(self, key, message):
+        index = message['contact']
+        hash_code = message['functionals'][index]
+        if hash_code in self.contacts:
+            del self.contacts[hash_code]
         else:
             print('missing contact to delete')
 
-    def update_contact(self, message):
-        if message['name'] in self.contacts:
-            self.contacts[message['name']] = message['address']
+    def update_contact(self, key, message):
+        index = message['contact']
+        hash_code = message['functionals'][index]
+        if hash_code in self.contacts:
+            self.contacts[key] = self.contacts[hash_code]
+            self.contacts[key]['address'] = message['address']
+            del self.contacts[hash_code]
         else:
             print('missing contact to update')
 
-    def create_group(self, message):
-        name = message['name']
-        members = message['members']
-        if name in self.groups:
+    def create_group(self, key, message):
+        indexes = message['contacts']
+        keys = [message['functionals'][index] for index in indexes]
+        if key in self.groups:
             print('group already exists')
         else:
-            self.groups[name] = []
-            for member in members:
+            self.groups[key] = {'name': message['name'], 'members': []}
+            for member in keys:
                 if member in self.contacts:
-                    self.groups[name].append(member)
+                    self.groups[key]['members'].append(member)
 
-    def delete_group(self, message):
-        if message['name'] in self.groups:
-            del self.groups[message['name']]
+    def delete_group(self, key, message):
+        index = message['group']
+        hash_code = message['functionals'][index]
+        if hash_code in self.groups:
+            del self.groups[hash_code]
         else:
             print('missing group to delete')
 
-    def add_member(self, message):
-        if message['name'] in self.groups:
-            if message['contact_name'] in self.contacts:
-                self.groups[message['name']].append(message['contact_name'])
+    def add_member(self, key, message):
+        contact_index = message['contact']
+        contact_key = message['functionals'][contact_index]
+        group_index = message['group']
+        group_key = message['functionals'][group_index]
+        if group_key in self.groups:
+            if contact_key in self.contacts:
+                self.groups[key] = self.groups[group_key]
+                self.groups[key]['members'].append(contact_key)
+                del self.groups[group_key]
             else:
                 print('missing contact to add')
         else:
             print('missing group to modify')
 
-    def remove_member(self, message):
-        if message['name'] in self.groups:
-            if message['member_name'] in self.groups[message['name']]:
-                self.groups[message['name']].remove(message['member_name'])
+    def remove_member(self, key, message):
+        contact_index = message['member']
+        contact_key = message['functionals'][contact_index]
+        group_index = message['group']
+        group_key = message['functionals'][group_index]
+        if group_key in self.groups:
+            if contact_key in self.groups[group_key]['members']:
+                self.groups[key] = self.groups[group_key]
+                self.groups[key]['members'].remove(contact_key)
+                del self.groups[group_key]
             else:
                 print('missing member to remove')
         else:
@@ -72,30 +94,32 @@ class AddressBook:
 
     def print(self):
         print('  contacts:')
-        for contact in self.contacts:
-            print(f'    {contact}: {self.contacts[contact]}')
+        for contact in self.contacts.values():
+            print(f'    {contact["name"]}: {contact["address"]}')
         print('  groups:')
-        for group in self.groups:
-            print(f'    {group}: {self.groups[group]}')
+        for group in self.groups.values():
+            members = [self.contacts[key]['name'] for key in group['members'] if key in self.contacts]
+            print(f'    {group["name"]}: {members}')
 
     def get_contacts_list(self):
-        return list(self.contacts.keys())
+        return {key: self.contacts[key]['name'] for key in self.contacts}
 
-    def get_contact(self, name):
-        return self.contacts[name]
+    def get_contact(self, key):
+        return self.contacts[key]
 
     def get_groups_list(self):
-        return list(self.groups.keys())
+        return {key: self.groups[key]['name'] for key in self.groups}
 
-    def get_group_members(self, group):
-        return self.groups[group]
+    def get_group_members(self, key):
+        return {contact_key: self.contacts[contact_key]
+                for contact_key in self.groups[key]['members']
+                if contact_key in self.contacts}
 
     def read_address_book(self):
-        reply = requests.get(f'{self.address}/dag')
+        reply = requests.get(f'{self.address}/dag',
+                             params={'application': 'SocialNetwork'})
         (sinks, reverse, transactions) = reverse_dag(reply.json())
         order = order_dag(sinks, reverse)
         for tx_list in order:
             for key in tx_list:
-                transaction = transactions[key]['content']
-                if transaction['application'] == 'SocialNetwork':
-                    self.execute(transaction)
+                self.execute(transactions[key]['hash_code'], transactions[key]['content'])
