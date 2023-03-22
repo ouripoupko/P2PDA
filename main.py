@@ -40,8 +40,19 @@ def transaction_handler():
 def dag_handler():
     hash_code = request.args.get('hash_code')
     application = request.args.get('application')
+    source = request.args.get('source')
     if hash_code:
         return the_dag[hash_code]
+    if source and application:
+        collection = {source}
+        reply = []
+        while collection:
+            transaction = the_dag[collection.pop()]
+            if transaction['content']['application'] == application:
+                reply.append(transaction)
+                for next_tx in transaction['content']['functionals']:
+                    collection.add(next_tx)
+        return reply
     if application:
         return [transaction for transaction in iter(the_dag) if transaction['content']['application'] == application]
     return [transaction for transaction in iter(the_dag)]

@@ -1,11 +1,11 @@
 import hashlib
 from datetime import datetime
 import requests
-from threading import Lock
+from threading import RLock
 
 class DagDataStructure:
     def __init__(self):
-        self.lock = Lock()
+        self.lock = RLock()
         self.transactions = {}
         self.sources = []
 
@@ -17,11 +17,6 @@ class DagDataStructure:
 
     def store_transaction(self, transaction):
         with self.lock:
-            for functional in transaction['content']['functionals']:
-                if functional not in self.transactions:
-                    reply = requests.get(f'{transaction["content"]["owner"]}/dag',
-                                         params={'hash_code': functional})
-                    self.store_transaction(reply.json())
             hash_code = transaction['hash_code']
             self.transactions[hash_code] = transaction
             if hash_code not in self.sources:

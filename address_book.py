@@ -1,8 +1,8 @@
 import requests
-from dag_utils import reverse_dag, order_dag
+from dag_utils import find_sources, order_sources
 
 class AddressBook:
-    def __init__(self, address):
+    def __init__(self, address, key = None):
         self.contacts = {}
         self.groups = {}
         self.address = address
@@ -13,7 +13,7 @@ class AddressBook:
                            'DeleteGroup': self.delete_group,
                            'ModifyGroupAdd': self.add_member,
                            'ModifyGroupRemove': self.remove_member}
-        self.read_address_book()
+        self.read_address_book(key)
 
     def execute(self, key, message):
         self.operations[message['operation']](key, message)
@@ -110,16 +110,20 @@ class AddressBook:
     def get_groups_list(self):
         return {key: self.groups[key]['name'] for key in self.groups}
 
+    def get_group(self, key):
+        return self.groups[key]
+
     def get_group_members(self, key):
-        return {contact_key: self.contacts[contact_key]
+        return {contact_key: self.contacts[contact_key]['name']
                 for contact_key in self.groups[key]['members']
                 if contact_key in self.contacts}
 
-    def read_address_book(self):
+    def read_address_book(self, key):
         reply = requests.get(f'{self.address}/dag',
-                             params={'application': 'SocialNetwork'})
-        (sinks, reverse, transactions) = reverse_dag(reply.json())
-        order = order_dag(sinks, reverse)
+                             params={'application': 'SocialNetwork',
+                                     'source': key})
+        (sources, transactions) = find_sources(reply.json())
+        order = order_sources(sources, transactions)
         for tx_list in order:
             for key in tx_list:
                 self.execute(transactions[key]['hash_code'], transactions[key]['content'])

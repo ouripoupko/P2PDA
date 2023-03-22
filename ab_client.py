@@ -12,7 +12,8 @@ main_menu = ['select an action:',
              '  2- group menu',
              '  3- share records',
              '  4- list address book',
-             '  5- quit']
+             '  5- quit',
+             '  6- initialize for testing']
 
 contact_menu = ['contact menu:',
                 '  1- create',
@@ -199,11 +200,49 @@ def list_address_book():
     print(f'{agent} address book:')
     book.print()
 
+def initialize():
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
+                                              'operation': 'CreateContact',
+                                              'functionals': [],
+                                              'name': 'Alice',
+                                              'address': 'http://localhost:5001'})
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
+                                              'operation': 'CreateContact',
+                                              'functionals': [],
+                                              'name': 'Bob',
+                                              'address': 'http://localhost:5002'})
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
+                                              'operation': 'CreateContact',
+                                              'functionals': [],
+                                              'name': 'Carol',
+                                              'address': 'http://localhost:5003'})
+    book = AddressBook(address)
+    contacts = book.get_contacts_list()
+    everyone = list(contacts.keys())
+    others = [key for key in everyone if contacts[key] != 'Alice']
+    name = 'Friends'
+    requests.post(f'{address}/message', json={'owner': address,
+                                              'application': 'SocialNetwork',
+                                              'operation': 'CreateGroup',
+                                              'functionals': everyone,
+                                              'name': name,
+                                              'contacts': [*range(len(everyone))]})
+    reply = requests.get(f'{address}/dag')
+    transactions = reply.json()
+    for key in others:
+        recipient = book.get_contact(key)
+        share_address = recipient['address']
+        requests.post(f'{share_address}/transaction', json=transactions)
+
+
 contact_actions = [(create_contact, []), (delete_contact, []), (modify_contact, [])]
 modify_group_actions = [(add_member, []), (remove_member, [])]
 group_actions = [(create_group, []), (delete_group, []), (modify_group_menu, modify_group_actions)]
 main_actions = [(contact_menu, contact_actions), (group_menu, group_actions),
-                (share_records, []), (list_address_book,[]), (False, [])]
+                (share_records, []), (list_address_book,[]), (False, []), (initialize, [])]
 
 next_menu = main_menu
 actions = main_actions
